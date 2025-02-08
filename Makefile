@@ -1,8 +1,23 @@
 build::
-	go run github.com/falling-sky/fsbuilder
+	go run github.com/falling-sky/fsbuilder@latest
+	echo 
+	echo
+	echo  DO NOT FORGET TO RUN MAKE UPLOAD
 
 beta: build
 	rsync -azv output/. jfesler@cosco.gigo.com:/persist/rsync.gigo.com/fsky/beta/content/.  --exclude site --delete
+	echo 
+	echo
+	echo  DO NOT FORGET TO RUN MAKE UPLOAD
+
+mtest: build
+	rsync -azv output/. jfesler@cosco.gigo.com:/persist/rsync.gigo.com/fsky/mtest/content/.  --exclude site --delete
+	echo 
+	echo
+	echo  DO NOT FORGET TO RUN MAKE UPLOAD
+
+upload:
+	cd translations && make crowdin-upload
 
 sites::
 	@echo Validating mirror sites | ./support/fold_start.sh $@
