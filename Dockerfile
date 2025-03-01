@@ -1,5 +1,5 @@
 
-FROM golang:alpine as builder
+FROM golang:alpine AS builder
 
 ## This dockerfile is for CI/CD.
 ## We use docker as a build method, but we are not shipping docker artifacts.
@@ -15,23 +15,35 @@ RUN apk add make git rsync curl openssh-client
 COPY . /build
 WORKDIR /build
 
-RUN go install github.com/falling-sky/fsbuilder
+RUN go install github.com/falling-sky/fsbuilder@latest
 
 # Make sure there is a valid sites file (minimum for beta).
 # Under release and i18n conditions, do a full real check.
+
 RUN cd sites && go run parse-sites.go --skip-validation
-RUN if [[ -s cicd_release ||  -s cicd_i18n ]]; then cd sites && go run parse-sites.go || exit 1 ; fi
-RUN cat ./templates/js/sites_parsed.js
+RUN ls -l cicd_release ; true 
+RUN ls -l cicd_i18n  ; true
+RUN if [[ -s cicd_release ]]; then cd sites && go run parse-sites.go || exit 1 ; cat ../templates/js/sites_parsed.js ; fi
+RUN if [[ -s cicd_i18n ]]; then ./support/add-build-date ; fi
+
+
+# Download?
+RUN if [[ -s translations/crowdin.json ]]; then cd translations && make || exit 1 ; fi
+
+RUN ls -l translations
+
 
 # Build the project
 RUN fsbuilder
 
+RUN cp sites/sites.json output/sites_unfiltered.json
+
 # Post-processing: translation and uploads
-RUN if [[ -s translations/crowdin.yaml ]]; then cd translations && make || exit 1 ; fi
+RUN if [[ -s translations/crowdin.json ]]; then cd translations && make || exit 1 ; fi
 
 # Publish
-RUN if [ -s cicd_release ]; then  rsync -a -e "ssh -o StrictHostKeyChecking=no  -i cicd_release -p 2222"  output/. fskyweb@rsync.test-ipv6.com:stable/content/. || exit 1 ; fi
-RUN if [ -s cicd_beta    ]; then  rsync -a -e "ssh -o StrictHostKeyChecking=no  -i cicd_release -p 2222"  output/. fskyweb@rsync.test-ipv6.com:beta/content/. || exit 1 ; fi
+RUN if [ -s cicd_release ]; then  rsync -a -e "ssh -o StrictHostKeyChecking=no  -i cicd_release -p 222"  output/. fskyweb@rsync.test-ipv6.com:stable/content/. || exit 1 ; fi
+RUN if [ -s cicd_i18n    ]; then  rsync -a -e "ssh -o StrictHostKeyChecking=no  -i cicd_i18n -p 222"  output/. fskyweb@rsync.test-ipv6.com:i18n/content/. || exit 1 ; fi
 
 
 

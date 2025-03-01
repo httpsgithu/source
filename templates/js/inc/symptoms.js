@@ -339,7 +339,7 @@ GIGO.identify_symptoms = function () {
         // If at least a single name-based lookup worked, but all IP based ones were timeouts
         // both IPv4 and IPv6, then we more strongly suspect a filtering plugin.
         //  RequestPolicy follows this pattern.
-        if (Browser.Engine.gecko) {
+        if (Browser && Browser.Engine && Browser.Engine.gecko) {
             res.push("ip_timeout:firefox");
         }
         // Specifically, those were TIMEOUTS
@@ -371,13 +371,6 @@ GIGO.identify_symptoms = function () {
         }
     }
 
-
-    // Buggy DNS server, mangling first AAAA 32 bits into A?
-    if (tests.hasOwnProperty("test_buggydns1")) {
-        if (tests.test_buggydns1.status === "affected") {
-            res.push("buggydns1");
-        }
-    }
 
     // Did our larger request work ok?
     if (Browser.opera) {
